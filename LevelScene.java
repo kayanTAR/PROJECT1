@@ -11,6 +11,7 @@ import java.util.*;
 import com.mojang.mario.sprites.*;
 import com.mojang.sonar.FixedSoundSource;
 import com.mojang.mario.level.*;
+import java.util.logging.Logger;
 
 
 public class LevelScene extends Scene implements SpriteContext
@@ -21,6 +22,8 @@ public class LevelScene extends Scene implements SpriteContext
 
     public Level level;
     public Mario mario;
+    int marioStartX=32;
+    int marioStartY=0;
     public float xCam, yCam, xCamO, yCamO;
     public static Image tmpImage;
     private int tick;
@@ -31,16 +34,10 @@ public class LevelScene extends Scene implements SpriteContext
     private BgRenderer[] bgLayer = new BgRenderer[2];
 
     private GraphicsConfiguration graphicsConfiguration;
-    private Color translucent = new Color(0, 0, 0, 0);
 
     public boolean paused = false;
     public int startTime = 0;
     private int timeLeft;
-    
-    private File tilesDir;
-    private File levelsDir;
-    private String tilesDataFilePath="";
-    private String levelsDataFilePath="";    
 
     //    private Recorder recorder = new Recorder();
     //    private Replayer replayer = null;
@@ -57,85 +54,72 @@ public class LevelScene extends Scene implements SpriteContext
         this.levelSeed = seed;
         this.renderer = renderer;
         this.levelDifficulty = levelDifficulty;
-        this.levelType = type;
+        //this.levelType = type;
+         this.levelType = LevelGenerator.TYPE_UNDERGROUND;
     }
+    
+    
+    public LevelScene(GraphicsConfiguration graphicsConfiguration, MarioComponent renderer, long seed, int levelDifficulty , int type ,Level l)
+    {
+        this.graphicsConfiguration = graphicsConfiguration;
+        this.levelSeed = seed;
+        this.renderer = renderer;
+        this.levelDifficulty = levelDifficulty;
+        this.level = l;
+        //this.levelType = type;
+         this.levelType = LevelGenerator.TYPE_OVERGROUND;
+    } 
+    
+    public LevelScene(GraphicsConfiguration graphicsConfiguration, MarioComponent renderer, long seed, int levelDifficulty , int type ,Level l , int marioStartX, int marioStartY)
+    {
+        this.graphicsConfiguration = graphicsConfiguration;
+        this.levelSeed = seed;
+        this.renderer = renderer;
+        this.levelDifficulty = levelDifficulty;
+        this.level = l;
+        //this.levelType = type;
+         this.levelType = LevelGenerator.TYPE_OVERGROUND;
+         this.marioStartX=marioStartX;
+         this.marioStartY=marioStartY;
+    }    
 
     public void init()
     {
-        
-        // crete default dirs if they don't exist
-        
-        tilesDir = new File(System.getProperty("user.home") + File.separatorChar + "infinitetux_data");
-        try {
-            levelsDir = new File(tilesDir.getCanonicalPath().toString() + File.separator + "levels");
-    
-        } catch (IOException ex) {
-            ex.printStackTrace();
-
+        try
+        { // now loads tile behaviors correctly? 
+            //Level.loadBehaviors(new DataInputStream(new FileInputStream("tiles.dat")));
+            Level.loadBehaviors(new DataInputStream(new FileInputStream(System.getProperty("user.home") + File.separatorChar + "infinitetux_data" + File.separatorChar + "tiles.dat")));
+           
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            try {
+                Level.loadBehaviors(new DataInputStream(LevelScene.class.getResourceAsStream("/tiles.dat")));
+                //System.exit(0);
+            } catch (IOException ex) {
+                Logger.getLogger(LevelScene.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            }
         }
 
-        try {
-            tilesDataFilePath = tilesDir.getCanonicalPath().toString() + File.separator + "tiles.dat";
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }   
-        
-        
-        // try and load tiles.dat from default data dir. If not create it and copy tiles.dat over
-        try {
-            System.out.println("Loading " + tilesDataFilePath);
-            Level.loadBehaviors(new DataInputStream(new FileInputStream(tilesDataFilePath)));
-        } catch (Exception e) {
-
-            try {
-                if (!tilesDir.exists()) {
-                    System.out.println("creating " + tilesDir.getName());
-                    tilesDir.mkdirs();
-                }
-                Level.loadBehaviors(new DataInputStream(LevelScene.class.getResourceAsStream("/tiles.dat")));
-                System.out.println("creating " + tilesDataFilePath);
-                Level.saveBehaviors(new DataOutputStream(new FileOutputStream(tilesDataFilePath)));
-                System.out.println("loading " + tilesDataFilePath);
-                Level.loadBehaviors(new DataInputStream(new FileInputStream(tilesDataFilePath)));
-
-            } catch (IOException e1) {
-                e1.printStackTrace();
-                try {
-
-                } catch (Exception e2) {
-                    e2.printStackTrace();
-
-                }
-
+            /*        if (replayer!=null)
+            {
+            level = LevelGenerator.createLevel(2048, 15, replayer.nextLong());
             }
-            //JOptionPane.showMessageDialog(this, e.toString(), "Failed to load tile behaviors", JOptionPane.ERROR_MESSAGE);
-            //JOptionPane.showMessageDialog(this, e.toString(), "Failed to load tile behaviors", JOptionPane.ERROR_MESSAGE);
-        }        
-//        try
-//        {
-//            Level.loadBehaviors(new DataInputStream(LevelScene.class.getResourceAsStream("/tiles.dat")));
-//        }
-//        catch (IOException e)
-//        {
-//            e.printStackTrace();
-//            System.exit(0);
-//        }
-        /*        if (replayer!=null)
-         {
-         level = LevelGenerator.createLevel(2048, 15, replayer.nextLong());
-         }
-         else
-         {*/
+            else
+            {*/
 //        level = LevelGenerator.createLevel(320, 15, levelSeed);
-        level = LevelGenerator.createLevel(640, 15, levelSeed, levelDifficulty, levelType);
-        //        }
+//level = LevelGenerator.createLevel(640, 15, levelSeed, levelDifficulty, levelType);
+//level = Level.load(new DataInputStream(LevelScene.class.getResourceAsStream("/tmp/temp.lvl")));
+//        }
+
 
         /*        if (recorder != null)
          {
          recorder.addLong(LevelGenerator.lastSeed);
          }*/
-
+   /*    
+        levelType = LevelGenerator.TYPE_UNDERGROUND;
         if (levelType == LevelGenerator.TYPE_OVERGROUND) {
             Art.startMusic(1);
             musicType = 1;
@@ -146,25 +130,33 @@ public class LevelScene extends Scene implements SpriteContext
             Art.startMusic(3);
             musicType = 3;
         }
-
+         */
+   
+        // set gackground and music
+        levelType = level.levelType;
+        if (level.levelMusic > -1) {
+            Art.startMusic(level.levelMusic);
+        }
 
         paused = false;
         Sprite.spriteContext = this;
         sprites.clear();
         layer = new LevelRenderer(level, graphicsConfiguration, 320, 240);
-        for (int i = 0; i < 2; i++)
-        {
-            int scrollSpeed = 4 >> i;
-            int w = ((level.width * 16) - 320) / scrollSpeed + 320;
-            int h = ((level.height * 16) - 240) / scrollSpeed + 240;
-            Level bgLevel = BgLevelGenerator.createLevel(w / 32 + 1, h / 32 + 1, i == 0, levelType);
-            bgLayer[i] = new BgRenderer(bgLevel, graphicsConfiguration, 320, 240, scrollSpeed);
+        if (levelType > -1) {
+            for (int i = 0; i < 2; i++) {
+                int scrollSpeed = 4 >> i;
+                int w = ((level.width * 16) - 320) / scrollSpeed + 320;
+                int h = ((level.height * 16) - 240) / scrollSpeed + 240;
+                Level bgLevel = BgLevelGenerator.createLevel(w / 32 + 1, h / 32 + 1, i == 0, levelType);
+                bgLayer[i] = new BgRenderer(bgLevel, graphicsConfiguration, 320, 240, scrollSpeed);
+            }
         }
-        mario = new Mario(this);
+        
+        mario = new Mario(this,marioStartX,marioStartY);
         sprites.add(mario);
         startTime = 1;
         
-        timeLeft = (200 + 50 * (level.width/320 - 1) ) * 15;
+        timeLeft = 1000 * 15;
 
         tick = 0;
     }
@@ -396,11 +388,12 @@ public class LevelScene extends Scene implements SpriteContext
         if (yCam > level.height * 16 - 240) yCam = level.height * 16 - 240;
 
         //      g.drawImage(Art.background, 0, 0, null);
-
-        for (int i = 0; i < 2; i++)
-        {
-            bgLayer[i].setCam(xCam, yCam);
-            bgLayer[i].render(g, tick, alpha);
+         //draws the back ground  
+         if (levelType > -1) {
+            for (int i = 0; i < 2; i++) {
+                bgLayer[i].setCam(xCam, yCam);
+                bgLayer[i].render(g, tick, alpha);
+            }
         }
 
         g.translate(-xCam, -yCam);
@@ -487,7 +480,7 @@ public class LevelScene extends Scene implements SpriteContext
         char[] ch = text.toCharArray();
         for (int i = 0; i < ch.length; i++)
         {
-            g.drawImage(Art.font[ch[i] - 32][c], x + i * 8, y,translucent, null);
+            g.drawImage(Art.font[ch[i] - 32][c], x + i * 8, y, null);
         }
     }
     
@@ -558,22 +551,22 @@ public class LevelScene extends Scene implements SpriteContext
         return 0;
     }
 
-        public void bump(int x, int y, boolean canBreakBricks)
+    public void bump(int x, int y, boolean canBreakBricks)
     {
         byte block = level.getBlock(x, y);
 
-        if ((Level.TILE_BEHAVIORS[block & 0xff] & Level.BIT_BUMPABLE) > 0) {
+        if ((Level.TILE_BEHAVIORS[block & 0xff] & Level.BIT_BUMPABLE) > 0) {// check if it's bumpable
             bumpInto(x, y - 1);
             level.setBlock(x, y, (byte) 4);
             level.setBlockData(x, y, (byte) 4);
 
-            if (((Level.TILE_BEHAVIORS[block & 0xff]) & Level.BIT_SPECIAL) > 0) {
+            if (((Level.TILE_BEHAVIORS[block & 0xff]) & Level.BIT_SPECIAL) > 0) {// this bit denotes 
                 
                 // test for 1 up
                 if (((Level.TILE_BEHAVIORS[block & 0xff]) & Level.BIT_BLOCK_LOWER) > 0) {
                     sound.play(Art.samples[Art.SAMPLE_ITEM_SPROUT], new FixedSoundSource(x * 16 + 8, y * 16 + 8), 1, 1, 1);
                     addSprite(new OneUp(this, x * 16 + 8, y * 16 + 8));
-                    
+                    //addSprite(new StarMan(this, x*16+8, y*16+8, 0));
                 }
                 
                  // test for Mushroom or Fire Flower

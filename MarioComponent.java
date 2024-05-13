@@ -1,5 +1,6 @@
 package com.mojang.mario;
 
+import com.mojang.mario.level.Level;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
@@ -21,11 +22,14 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
     private static final long serialVersionUID = 739318775993206607L;
     public static final int TICKS_PER_SECOND = 24;
 
+    public Thread marioThread;
     private boolean running = false;
     private int width, height;
+    private int marioStartX=32;
+    private int marioStartY =32;
+    private Level level;
     private GraphicsConfiguration graphicsConfiguration;
-    private Color translucent = new Color(0, 0, 0, 0);
-    private Scene scene;
+   public Scene scene;
     private SonarSoundEngine sound;
     @SuppressWarnings("unused")
 	private boolean focused = false;
@@ -34,13 +38,42 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
     int delay;
 
     private Scale2x scale2x = new Scale2x(320, 240);
+    
+    public MarioComponent(int width, int height,int marioStartX, int marioStartY)
+    {
+    this.marioStartX=marioStartX;
+    this.marioStartY=marioStartY;
+        this.setFocusable(true);
+        this.setEnabled(true);
+        this.width = width;
+        this.height = height;
+        
 
+        Dimension size = new Dimension(width, height);
+        setPreferredSize(size);
+        setMinimumSize(size);
+        setMaximumSize(size);
+
+        try
+        {
+            sound = new SonarSoundEngine(64);
+        }
+        catch (LineUnavailableException e)
+        {
+            e.printStackTrace();
+            sound = new FakeSoundEngine();
+        }
+
+        setFocusable(true);
+    
+    }
     public MarioComponent(int width, int height)
     {
         this.setFocusable(true);
         this.setEnabled(true);
         this.width = width;
         this.height = height;
+        
 
         Dimension size = new Dimension(width, height);
         setPreferredSize(size);
@@ -59,6 +92,60 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
 
         setFocusable(true);
     }
+    public MarioComponent(Level l ,int width, int height)
+    {
+        this.setFocusable(true);
+        this.setEnabled(true);
+        this.width = width;
+        this.height = height;
+        this.level = l;
+
+        Dimension size = new Dimension(width, height);
+        setPreferredSize(size);
+        setMinimumSize(size);
+        setMaximumSize(size);
+
+        try
+        {
+            sound = new SonarSoundEngine(64);
+        }
+        catch (LineUnavailableException e)
+        {
+            e.printStackTrace();
+            sound = new FakeSoundEngine();
+        }
+
+        setFocusable(true);
+    }
+    
+    
+    public MarioComponent(Level l ,int width, int height,int marioStartX, int marioStartY)
+    {
+    this.marioStartX=marioStartX;
+    this.marioStartY=marioStartY;
+        this.setFocusable(true);
+        this.setEnabled(true);
+        this.width = width;
+        this.height = height;
+        this.level = l;
+
+        Dimension size = new Dimension(width, height);
+        setPreferredSize(size);
+        setMinimumSize(size);
+        setMaximumSize(size);
+
+        try
+        {
+            sound = new SonarSoundEngine(64);
+        }
+        catch (LineUnavailableException e)
+        {
+            e.printStackTrace();
+            sound = new FakeSoundEngine();
+        }
+
+        setFocusable(true);
+    }    
 
     private void toggleKey(int keyCode, boolean isPressed)
     {
@@ -93,7 +180,16 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
         
  		if (isPressed && keyCode == KeyEvent.VK_ESCAPE){
 			try {
-				System.exit(1);
+				//System.exit(1);
+                                stop();
+                                this.scene = null;
+                                running = false;
+                               
+                                marioThread = null;
+                     
+                                SwingUtilities.getWindowAncestor(this).dispose();
+                               
+                               
 			} catch(Exception e) {
 				System.out.println("Unable to exit.");
 			}
@@ -113,26 +209,29 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
         if (!running)
         {
             running = true;
-            new Thread(this, "Game Thread").start();
+            marioThread = new Thread(this, "Game Thread");
+            marioThread.start();
+            
         }
     }
 
-    public void stop()
-    {
+    public void stop() {
         Art.stopMusic();
         running = false;
+
     }
 
     public void run()
     {
         graphicsConfiguration = getGraphicsConfiguration();
-       
 
 
         //      scene = new LevelScene(graphicsConfiguration);
-        mapScene = new MapScene(graphicsConfiguration, this, new Random().nextLong());
-        scene = mapScene;
-        scene.setSound(sound);
+        //mapScene = new MapScene(graphicsConfiguration, this, new Random().nextLong());
+        //scene = mapScene;
+        //scene.setSound(sound);
+        //startLevel( 1,  1,  2);
+        
 
         Art.init(graphicsConfiguration, sound);
 
@@ -150,7 +249,8 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
         addKeyListener(this);
         addFocusListener(this);
 
-        toTitle();
+        //toTitle();
+        this.startGame();
         adjustFPS();
 
         while (running)
@@ -204,7 +304,7 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
                 drawString(og, msg, 160 - msg.length() * 4 + 1, 110 + 1, 0);
                 drawString(og, msg, 160 - msg.length() * 4, 110, 7);
             }*/
-            og.setColor(Color.BLACK);
+            //og.setColor(Color);
             /*          drawString(og, "FPS: " + fps, 5, 5, 0);
              drawString(og, "FPS: " + fps, 4, 4, 7);*/
 
@@ -212,16 +312,16 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
             {
                 if (useScale2x)
                 {
-                    g.drawImage(scale2x.scale(image), 0, 0, width, height,translucent, null);
+                    g.drawImage(scale2x.scale(image), 0, 0, width, height, null);
                 }
                 else
                 {
-                    g.drawImage(image, 0, 0, width, height,translucent, null);
+                    g.drawImage(image, 0, 0, width, height, null);
                 }
             }
             else
             {
-                g.drawImage(image, 0, 0,translucent, null);
+                g.drawImage(image, 0, 0, null);
             }
             
             if (delay > 0)
@@ -236,6 +336,8 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
         }
 
         Art.stopMusic();
+        //stop();
+        running = false;
     }
 
     private void drawString(Graphics g, String text, int x, int y, int c)
@@ -243,7 +345,7 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
         char[] ch = text.toCharArray();
         for (int i = 0; i < ch.length; i++)
         {
-            g.drawImage(Art.font[ch[i] - 32][c], x + i * 8, y,translucent, null);
+            g.drawImage(Art.font[ch[i] - 32][c], x + i * 8, y, null);
         }
     }
 
@@ -257,22 +359,23 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
         toggleKey(arg0.getKeyCode(), false);
     }
 
-    public void startLevel(long seed, int difficulty, int type)
+    public void startLevel(long seed, int difficulty, int type, int marioStartX, int marioStartY)
     {
-        scene = new LevelScene(graphicsConfiguration, this, seed, difficulty, type);
+        scene = new LevelScene(graphicsConfiguration, this, seed, difficulty, type, level ,marioStartX , marioStartY);
         scene.setSound(sound);
         scene.init();
     }
 
     public void levelFailed()
     {
-        scene = mapScene;
-        mapScene.startMusic();
-        Mario.lives--;
-        if (Mario.lives == 0)
-        {
-            lose();
-        }
+        //scene = mapScene;
+        //mapScene.startMusic();
+       //Mario.lives = 0;
+        //if (Mario.lives == 0)
+       // {
+       //     lose();
+       // }
+        
     }
 
     public void keyTyped(KeyEvent arg0)
@@ -291,16 +394,17 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
 
     public void levelWon()
     {
-        scene = mapScene;
-        mapScene.startMusic();
-        mapScene.levelWon();
+//        scene = mapScene;
+//        mapScene.startMusic();
+//        mapScene.levelWon();
     }
     
-    public void win()
-    {
-        scene = new WinScene(this);
-        scene.setSound(sound);
-        scene.init();
+    public void win() {
+//        scene = new WinScene(this);
+//        scene.setSound(sound);
+//        scene.init();
+
+
     }
     
     public void toTitle()
@@ -313,16 +417,18 @@ public class MarioComponent extends JComponent implements Runnable, KeyListener,
     
     public void lose()
     {
-        scene = new LoseScene(this);
-        scene.setSound(sound);
-        scene.init();
+//        scene = new LoseScene(this);
+//        scene.setSound(sound);
+//        scene.init();
+
     }
 
     public void startGame()
     {
-        scene = mapScene;
-        mapScene.startMusic();
-        mapScene.init();
+        //scene = mapScene;
+//        mapScene.startMusic();
+  //      mapScene.init();
+        startLevel( 1,  1,  2 , marioStartX, marioStartY);
    }
     
     public void adjustFPS() {
